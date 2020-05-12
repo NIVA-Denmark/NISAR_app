@@ -79,8 +79,7 @@ shinyServer(function(input, output,session) {
     df1
     })
   
-  
-  
+
   SpeciesList <- reactive({
     df1<-df
     if(!is.null(input$Kingdom)){
