@@ -8,7 +8,7 @@ shinyUI(
             titlePanel(title=div(
               a(href="https://niva-denmark.dk/",
                 img(src="NIVA-Denmark-150.png"))
-              ,"Kort over ikke-hjemmehørende arter"
+              ,textOutput("AppTitle")  # "Kort over ikke-hjemmehørende arter"
             )),
             
             column(3,
@@ -16,6 +16,7 @@ shinyUI(
                      uiOutput("SelectKingdom"),
                      uiOutput("SelectSpecies"),
                      uiOutput("SelectRegion"),
+                     uiOutput("SelectMethod"),
                      tableOutput("table")
                    )
             ),

@@ -6,9 +6,33 @@ library(tidyverse)
 
 shinyServer(function(input, output,session) {
 
-  RegionList<-c("North Sea","Kattegat","Limfjord","Belt Sea","W. Baltic")
-  Region<-factor(RegionList,levels=RegionList)
-  REGIONID <-c(1,2,3,4,5)
+  LANG = "DK"
+  #LANG = "EN"
+  
+  if(LANG=="DK"){
+    RegionList<-c("Nordsøen","Kattegat","Limfjorden","Bælthavet","Vestlig Østersø")
+    sMethod <- c("Konventionel","eDNA","Begge")
+    sLabelMethod <- "Metode"
+    sLabelKingdom <- "Rige"
+    sLabelSpecies <- "Art"
+    sLabelRegion <- "Region"
+    sLabelCount <- "Antal"
+    sAll <- "ALLE"
+    sAppTitle <- "Kort over ikke-hjemmehørende arter"
+  }else{
+    RegionList<-c("North Sea","Kattegat","Limfjord","Belt Sea","W. Baltic")
+    sMethod <- c("Conventional","eDNA","Both")
+    sLabelMethod <- "Method"
+    sLabelKingdom <- "Kingdom"
+    sLabelSpecies <- "Species"
+    sLabelRegion <- "Region"
+    sLabelCount <- "Count"
+    sAll <- "ALL"
+    sAppTitle <- "Map of non-indigenous species"
+  }
+  
+  Region<-factor(c(RegionList,"unspecified"),levels=c(RegionList,"unspecified"))
+  REGIONID <-c(1,2,3,4,5,0)
   dfRegion <-data.frame(Region,REGIONID,stringsAsFactors=T)
   
   YearMin <- 1990 # minimum year for bar chart
@@ -20,8 +44,10 @@ shinyServer(function(input, output,session) {
   dfObs <- read.table("data/NISAR_obs.csv",stringsAsFactors=F,header=T,fileEncoding="UTF-8",sep=";")
   dfObs <- dfObs %>%
     left_join(select(dfSpecies,AphiaID,ScientificName),by="AphiaID") %>%
-    #mutate(REGIONID=ifelse(is.na(REGIONID),0,REGIONID)) %>%
+    mutate(REGIONID=ifelse(is.na(REGIONID),0,REGIONID)) %>%
     left_join(dfRegion,by="REGIONID") %>%
+    mutate(eDNA=ifelse(is.na(eDNA),FALSE,eDNA)) %>%
+    mutate(Method=ifelse(eDNA,sMethod[2],sMethod[1])) %>%
     filter(Year>=1990) 
   
   dfNISlist <- distinct(dfSpecies,AphiaID)
@@ -39,6 +65,17 @@ shinyServer(function(input, output,session) {
     mutate(Years=ifelse(From==To,as.character(From),paste0(From,"-",To))) %>%
     ungroup()
   
+  dfDNA <- dfObs %>%
+    filter(!(is.na(Lat) | is.na(Lon))) %>%
+    mutate(Method=ifelse(eDNA,"eDNA","Conv")) %>%
+    group_by(Lat,Lon,AphiaID,Method) %>%
+    summarise(n=n()) %>%
+    ungroup() %>%
+    pivot_wider(values_from = n,names_from = Method) %>%
+    mutate(Method=ifelse(is.na(eDNA),sMethod[1],ifelse(is.na(Conv),sMethod[2],sMethod[3])))  %>%
+    select(Lat,Lon,AphiaID,Method)
+   
+
   df <- dfNISlist %>%
     left_join(df,by="AphiaID") %>%
     filter(!(is.na(Lat) | is.na(Lon)))
@@ -46,15 +83,20 @@ shinyServer(function(input, output,session) {
   df <- df %>% 
     left_join(dfSpecies,by="AphiaID")
   
+  df <- df %>% 
+    left_join(dfDNA,by=c("AphiaID","Lat","Lon"))
   
   df <- df %>% 
     mutate(HtmlText=paste0("<a href='http://marinespecies.org/aphia.php?p=taxdetails&id=",AphiaID,
                            "'>http://marinespecies.org/aphia.php?p=taxdetails&id=",AphiaID,"</a>")) %>%
     arrange(ScientificName)
   
+  #df$Method <- as.factor(df$Method,levels=sMethod)
+  
   dfYear <- dfObs %>%
-    select(ScientificName,Year,Lat,Lon,Region) %>%
+    select(ScientificName,Year,Lat,Lon,Region,Method) %>%
     arrange(ScientificName,Year)
+  #dfYear$Method <- factor(dfYear$Method,levels=sMethod)
   
   name_list<-reactive({
     c("ALL",sort(unique(df$ScientificName)))
@@ -71,19 +113,28 @@ shinyServer(function(input, output,session) {
          df1<-df[df$ScientificName == input$Species,]
     }
     if(!is.null(input$Region)){
-      if(input$Region!="ALL"){
+      if(input$Region!=sAll){
         df1<-df1[df1$Region == input$Region,]
+      }
+    }
+    if(!is.null(input$Method)){
+      if(input$Method!=sAll){
+        df1<-df1[df1$Method == input$Method,]
       }
     }
     
     df1
     })
   
+  MethodList <- reactive({
+    df1 <- distinct(df,Method)
+    return(df1$Method)
+  })
 
   SpeciesList <- reactive({
     df1<-df
     if(!is.null(input$Kingdom)){
-      if(!input$Kingdom=="ALL"){
+      if(!input$Kingdom==sAll){
         df1<-df1[df1$Kingdom == input$Kingdom,]
       }
     }
@@ -91,22 +142,26 @@ shinyServer(function(input, output,session) {
     return(df1$ScientificName)
     })
   
-  strPalName<-brewer.pal(3,"Set1")
+  
   
   output$mymap <- renderLeaflet({
+    
     mapdf<-df_r()
     
+    method_cols <- c("#999999","#FF0000","#0000FF")
+
     mapdf <- mapdf %>%
       filter(!is.na(Lat))
-    pal<-colorFactor(strPalName, df$Kingdom)
+    
+    pal<-colorFactor(method_cols, mapdf$Method,levels=sMethod)
 
         map<- leaflet({mapdf}) %>% 
       addProviderTiles("Esri.WorldStreetMap", options = providerTileOptions(noWrap = TRUE)) %>%
       setView(zoom=6,lat=56.5,lng=11.5)
-    
+    #browser()
     if(nrow(mapdf)>0){
       map <- map %>% addCircleMarkers(~Lon, ~Lat, radius=5,popup=~YearList,label=~Years,
-                       stroke=TRUE, color=~From,weight=1,opacity=1,fillOpacity = 1,fillColor=~From)
+                       stroke=TRUE, color=~pal(Method),weight=1,opacity=1,fillOpacity = 1,fillColor=~pal(Method))
         
     }
 
@@ -115,45 +170,68 @@ shinyServer(function(input, output,session) {
   })  
   output$SelectSpecies <- renderUI({
     tagList(
-      selectInput("Species", "Vælg art:", choices=SpeciesList())
+      selectInput("Species",  sLabelSpecies, choices=SpeciesList())
     )})
 
   output$SelectRegion <- renderUI({
     tagList(
-      selectInput("Region", "Region:", choices=c("ALL",RegionList))
+      selectInput("Region", sLabelRegion, choices=c(sAll,RegionList))
     )})
     
   output$SelectKingdom <- renderUI({
     tagList(
-      selectInput("Kingdom", "Kingdom:", choices=Kingdomlist(),multiple=F) #,width='400px'
+      selectInput("Kingdom", sLabelKingdom, choices=Kingdomlist(),multiple=F) #,width='400px'
 
     )})
   
+  output$SelectMethod <- renderUI({
+    tagList(
+      selectInput("Method", sLabelMethod, choices=c(sAll,MethodList()))
+    )})
+  
+  
+  output$AppTitle <- renderText(sAppTitle)
+  
   output$barPlot <- renderPlot({
+
     dfplot<-dfYear %>%
       filter(ScientificName==input$Species)
-    
+
     sTitle <- input$Species
     if(!is.null(input$Region)){
-      if(input$Region!="ALL"){
+      if(input$Region!=sAll){
         dfplot<-dfplot[dfplot$Region == input$Region,]
         sTitle <- paste0(sTitle," (",input$Region,")")
       }
     }
+    if(!is.null(input$Method)){
+      if(input$Method!=sAll){
+        dfplot<-dfplot[dfplot$Method == input$Method,]
+        sTitle <- paste0(sTitle," (",input$Method,")")
+      }
+    }
     
     dfplot <- dfplot %>%
-      group_by(Year) %>%
+      group_by(Year,Method) %>%
       summarise(Count=n())
     
+    # sMethodReplace <- distinct(dfplot,Method)
+    # sMethodReplace <- sMethod[sMethod %in% sMethodReplace$Method]
+    # sMethodReplace <- sMethodReplace[1]
+    # 
     dfplot <- data.frame(Year=YearList) %>%
       left_join(dfplot,by="Year") %>%
-      mutate(Count=ifelse(is.na(Count),0,Count))
+      mutate(Count=ifelse(is.na(Count),0,Count)) %>%
+      mutate(Method = ifelse(is.na(Method),sMethod[1],Method)) 
     
+    #dfplot$method <- factor(dfplot$method,levels=sMethod)
+    
+    method_cols <- c("#999999","#FF0000")
     
     p <- ggplot(dfplot) + geom_bar(stat="identity",position="stack",
-                                   aes(x=Year,y=Count),fill="#999999",width=0.8) + 
-      theme_minimal() +
-      ggtitle(sTitle) 
+                                   aes(x=Year,y=Count,fill=factor(Method,levels=sMethod)),width=0.8) + 
+      theme_minimal() +  scale_fill_manual(values = method_cols,name=sLabelMethod) +
+      ggtitle(sTitle) + labs(y = sLabelCount)
     
     p
     
