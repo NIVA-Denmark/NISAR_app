@@ -91,12 +91,6 @@ shinyServer(function(input, output,session) {
                            "'>http://marinespecies.org/aphia.php?p=taxdetails&id=",AphiaID,"</a>")) %>%
     arrange(ScientificName)
   
-  #df$Method <- as.factor(df$Method,levels=sMethod)
-  
-  # dfYear <- dfObs %>%
-  #   select(ScientificName,Year,Lat,Lon,Region,Method) %>%
-  #   arrange(ScientificName,Year)
-  #dfYear$Method <- factor(dfYear$Method,levels=sMethod)
   
   name_list<-reactive({
     c("ALL",sort(unique(df$ScientificName)))
@@ -136,6 +130,11 @@ shinyServer(function(input, output,session) {
     if(!is.null(input$Kingdom)){
       if(!input$Kingdom==sAll){
         df1<-df1[df1$Kingdom == input$Kingdom,]
+      }
+    }
+    if(!is.null(input$Method)){
+      if(!input$Method==sAll){
+        df1<-df1[df1$Method == input$Method,]
       }
     }
     df1 <- distinct(df1,ScientificName)
@@ -193,15 +192,13 @@ shinyServer(function(input, output,session) {
   output$AppTitle <- renderText(sAppTitle)
   
   output$barPlot <- renderPlot({
-    #browser()
+
+    req(input$Species,input$Method)
+    
     dfplot<-dfObs %>%
       filter(ScientificName==input$Species) %>%
       select(ScientificName,Year,Lat,Lon,Region,Method)
-    
-    # dfYear <- dfObs %>%
-    #   select(ScientificName,Year,Lat,Lon,Region,Method) %>%
-    #   arrange(ScientificName,Year)
-    
+
     sTitle <- input$Species
     if(!is.null(input$Region)){
       if(input$Region!=sAll){
@@ -220,16 +217,10 @@ shinyServer(function(input, output,session) {
       group_by(Year,Method) %>%
       summarise(Count=n())
     
-    # sMethodReplace <- distinct(dfplot,Method)
-    # sMethodReplace <- sMethod[sMethod %in% sMethodReplace$Method]
-    # sMethodReplace <- sMethodReplace[1]
-    # 
     dfplot <- data.frame(Year=YearList) %>%
       left_join(dfplot,by="Year") %>%
       mutate(Count=ifelse(is.na(Count),0,Count)) %>%
       mutate(Method = ifelse(is.na(Method),sMethod[1],Method)) 
-    
-    #dfplot$method <- factor(dfplot$method,levels=sMethod)
     
     method_cols <- c("#999999","#FF0000")
     
