@@ -93,9 +93,9 @@ shinyServer(function(input, output,session) {
   
   #df$Method <- as.factor(df$Method,levels=sMethod)
   
-  dfYear <- dfObs %>%
-    select(ScientificName,Year,Lat,Lon,Region,Method) %>%
-    arrange(ScientificName,Year)
+  # dfYear <- dfObs %>%
+  #   select(ScientificName,Year,Lat,Lon,Region,Method) %>%
+  #   arrange(ScientificName,Year)
   #dfYear$Method <- factor(dfYear$Method,levels=sMethod)
   
   name_list<-reactive({
@@ -193,10 +193,15 @@ shinyServer(function(input, output,session) {
   output$AppTitle <- renderText(sAppTitle)
   
   output$barPlot <- renderPlot({
-
-    dfplot<-dfYear %>%
-      filter(ScientificName==input$Species)
-
+    #browser()
+    dfplot<-dfObs %>%
+      filter(ScientificName==input$Species) %>%
+      select(ScientificName,Year,Lat,Lon,Region,Method)
+    
+    # dfYear <- dfObs %>%
+    #   select(ScientificName,Year,Lat,Lon,Region,Method) %>%
+    #   arrange(ScientificName,Year)
+    
     sTitle <- input$Species
     if(!is.null(input$Region)){
       if(input$Region!=sAll){
