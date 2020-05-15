@@ -3,6 +3,7 @@ library(leaflet)
 library(googlesheets)
 library(RColorBrewer)
 library(tidyverse)
+library(scales)
 
 shinyServer(function(input, output,session) {
 
@@ -17,6 +18,7 @@ shinyServer(function(input, output,session) {
     sLabelSpecies <- "Art"
     sLabelRegion <- "Region"
     sLabelCount <- "Antal"
+    sLabelYear <- "År"
     sAll <- "ALLE"
     sAppTitle <- "Kort over ikke-hjemmehørende arter"
   }else{
@@ -27,6 +29,7 @@ shinyServer(function(input, output,session) {
     sLabelSpecies <- "Species"
     sLabelRegion <- "Region"
     sLabelCount <- "Count"
+    sLabelYear <- "Year"
     sAll <- "ALL"
     sAppTitle <- "Map of non-indigenous species"
   }
@@ -200,38 +203,62 @@ shinyServer(function(input, output,session) {
       select(ScientificName,Year,Lat,Lon,Region,Method)
 
     sTitle <- input$Species
+    sSubTitle <- ""
     if(!is.null(input$Region)){
       if(input$Region!=sAll){
         dfplot<-dfplot[dfplot$Region == input$Region,]
-        sTitle <- paste0(sTitle," (",input$Region,")")
+        sTitle <- paste0(sTitle," ",input$Region,"")
+        #sSubTitle <- paste0(sLabelRegion,": ",input$Region)
       }
     }
     if(!is.null(input$Method)){
       if(input$Method!=sAll){
         dfplot<-dfplot[dfplot$Method == input$Method,]
-        sTitle <- paste0(sTitle," (",input$Method,")")
+        #sTitle <- paste0(sTitle," (",input$Method,")")
+        if(sSubTitle==""){
+          sSubTitle <- paste0(sLabelMethod,": ",input$Method)
+        }else{
+          sSubTitle <- paste0(sSubTitle,", ",sLabelMethod,": ",input$Method)
+        }
       }
+    }
+    if(sSubTitle!=""){
+      sTitle <- paste0(sTitle," [",sSubTitle,"]")
     }
     
     dfplot <- dfplot %>%
       group_by(Year,Method) %>%
       summarise(Count=n())
     
+    sMethodReplace <- sMethod[1]
+    if(nrow(distinct(dfplot,Method))==1){
+      sMethodReplace <- dfplot[1,"Method"]
+    }
+    
     dfplot <- data.frame(Year=YearList) %>%
       left_join(dfplot,by="Year") %>%
       mutate(Count=ifelse(is.na(Count),0,Count)) %>%
-      mutate(Method = ifelse(is.na(Method),sMethod[1],Method)) 
+      mutate(Method = ifelse(is.na(Method),sMethodReplace,Method)) 
+    #dfplot$Count <- as.integer(dfplot$Count)
     
+    ymax <- max(dfplot$Count,na.rm=T)
+    ymax <- max(ymax,4)
     method_cols <- c("#999999","#FF0000")
+    method_cols <- c("Konventionel"="#999999","eDNA"="#FF0000","Begge"="#0000FF")
+    
     
     p <- ggplot(dfplot) + geom_bar(stat="identity",position="stack",
                                    aes(x=Year,y=Count,fill=factor(Method,levels=sMethod)),width=0.8) + 
       theme_minimal() +  scale_fill_manual(values = method_cols,name=sLabelMethod) +
-      ggtitle(sTitle) + labs(y = sLabelCount)
+      ggtitle(sTitle) + labs(y = sLabelCount, x=sLabelYear) +
+      #,subtitle=sSubTitle
+      theme(legend.position = "bottom") +
+      #scale_y_continuous(labels=comma_format(accuracy=0.1) ) +
+      scale_y_continuous(breaks= pretty_breaks()) +
+      coord_cartesian(ylim = c(0, ymax))
     
     p
     
   })
-  
   
 })
