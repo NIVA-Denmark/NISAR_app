@@ -98,15 +98,11 @@ shinyServer(function(input, output,session) {
     arrange(ScientificName)
   
   
-  name_list<-reactive({
-    c("ALL",sort(unique(df$ScientificName)))
-  })
+  name_list<-c("ALL",sort(unique(df$ScientificName)))
   
-  Kingdomlist<- reactive({
-     df1 <- distinct(dfSpecies,Kingdom)
-     return(df1$Kingdom)
-  })
-  
+  Kingdomlist<- distinct(dfSpecies,Kingdom)
+  Kingdomlist<-Kingdomlist$Kingdom
+
   df_r<-reactive({
     df1 <- df[0,]
     if(!is.null(input$Species)){
@@ -126,6 +122,9 @@ shinyServer(function(input, output,session) {
     df1
     })
   
+  
+  
+  
   MethodList <- reactive({
     df1 <- distinct(df,Method)
     return(df1$Method)
@@ -138,9 +137,10 @@ shinyServer(function(input, output,session) {
         df1<-df1[df1$Kingdom == input$Kingdom,]
       }
     }
-    if(!is.null(input$Method)){
-      if(!input$Method==sAll){
-        df1<-df1[df1$Method == input$Method,]
+    sMethodSelected<-isolate(input$Method)
+    if(!is.null(sMethodSelected)){
+      if(!sMethodSelected==sAll){
+        df1<-df1[df1$Method == sMethodSelected,]
       }
     }
     df1 <- distinct(df1,ScientificName)
@@ -185,7 +185,7 @@ shinyServer(function(input, output,session) {
     
   output$SelectKingdom <- renderUI({
     tagList(
-      selectInput("Kingdom", sLabelKingdom, choices=Kingdomlist(),multiple=F) #,width='400px'
+      selectInput("Kingdom", sLabelKingdom, choices=Kingdomlist,multiple=F) #,width='400px'
 
     )})
   
