@@ -6,7 +6,6 @@ library(tidyverse)
 library(scales)
 
 shinyServer(function(input, output,session) {
-
   LANG = "DK"
   #LANG = "EN"
   
@@ -21,6 +20,8 @@ shinyServer(function(input, output,session) {
     sLabelYear <- "År"
     sAll <- "ALLE"
     sAppTitle <- "Kort over ikke-hjemmehørende arter"
+    sLogoFile<-"www/NIVA-Danmark-150.png"
+    method_cols <- c("Konventionel"="#999999","eDNA"="#FF0000","Begge"="#0000FF")
   }else{
     RegionList<-c("North Sea","Kattegat","Limfjord","Belt Sea","W. Baltic")
     sMethod <- c("Conventional","eDNA","Both")
@@ -32,6 +33,8 @@ shinyServer(function(input, output,session) {
     sLabelYear <- "Year"
     sAll <- "ALL"
     sAppTitle <- "Map of non-indigenous species"
+    sLogoFile<-"www/NIVA-Denmark-150.png"
+    method_cols <- c("Conventional"="#999999","eDNA"="#FF0000","Both"="#0000FF")
   }
   
   Region<-factor(c(RegionList,"unspecified"),levels=c(RegionList,"unspecified"))
@@ -150,12 +153,12 @@ shinyServer(function(input, output,session) {
     
     mapdf<-df_r()
     
-    method_cols <- c("#999999","#FF0000","#0000FF")
+    map_method_cols <- c("#999999","#FF0000","#0000FF")
 
     mapdf <- mapdf %>%
       filter(!is.na(Lat))
     
-    pal<-colorFactor(method_cols, mapdf$Method,levels=sMethod)
+    pal<-colorFactor(map_method_cols, mapdf$Method,levels=sMethod)
 
         map<- leaflet({mapdf}) %>% 
       addProviderTiles("Esri.WorldStreetMap", options = providerTileOptions(noWrap = TRUE)) %>%
@@ -207,14 +210,12 @@ shinyServer(function(input, output,session) {
     if(!is.null(input$Region)){
       if(input$Region!=sAll){
         dfplot<-dfplot[dfplot$Region == input$Region,]
-        sTitle <- paste0(sTitle," ",input$Region,"")
-        #sSubTitle <- paste0(sLabelRegion,": ",input$Region)
+        sTitle <- paste0(sTitle,", ",input$Region,"")
       }
     }
     if(!is.null(input$Method)){
       if(input$Method!=sAll){
         dfplot<-dfplot[dfplot$Method == input$Method,]
-        #sTitle <- paste0(sTitle," (",input$Method,")")
         if(sSubTitle==""){
           sSubTitle <- paste0(sLabelMethod,": ",input$Method)
         }else{
@@ -239,26 +240,24 @@ shinyServer(function(input, output,session) {
       left_join(dfplot,by="Year") %>%
       mutate(Count=ifelse(is.na(Count),0,Count)) %>%
       mutate(Method = ifelse(is.na(Method),sMethodReplace,Method)) 
-    #dfplot$Count <- as.integer(dfplot$Count)
-    
+
     ymax <- max(dfplot$Count,na.rm=T)
     ymax <- max(ymax,4)
-    method_cols <- c("#999999","#FF0000")
-    method_cols <- c("Konventionel"="#999999","eDNA"="#FF0000","Begge"="#0000FF")
-    
+   
     
     p <- ggplot(dfplot) + geom_bar(stat="identity",position="stack",
                                    aes(x=Year,y=Count,fill=factor(Method,levels=sMethod)),width=0.8) + 
       theme_minimal() +  scale_fill_manual(values = method_cols,name=sLabelMethod) +
       ggtitle(sTitle) + labs(y = sLabelCount, x=sLabelYear) +
-      #,subtitle=sSubTitle
       theme(legend.position = "bottom") +
-      #scale_y_continuous(labels=comma_format(accuracy=0.1) ) +
       scale_y_continuous(breaks= pretty_breaks()) +
       coord_cartesian(ylim = c(0, ymax))
     
     p
     
   })
+  
+  output$imgLogo <- renderImage({list(src=sLogoFile,alt="NIVA DK logo")},deleteFile=F)
+
   
 })
