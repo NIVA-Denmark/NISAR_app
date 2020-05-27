@@ -19,6 +19,7 @@ shinyUI(
                      uiOutput("SelectSpecies"),
                      uiOutput("SelectRegion"),
                      uiOutput("SelectMethod"),
+                     uiOutput("useGrouping"),
                      tableOutput("table")
                    )
             ),

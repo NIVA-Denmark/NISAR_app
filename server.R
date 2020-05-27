@@ -1,112 +1,13 @@
-library(shiny)
-library(leaflet)
-library(googlesheets)
-library(RColorBrewer)
-library(tidyverse)
-library(scales)
+
 
 shinyServer(function(input, output,session) {
-  LANG = "DK"
-  #LANG = "EN"
-  
-  if(LANG=="DK"){
-    RegionList<-c("Nordsøen","Kattegat","Limfjorden","Bælthavet","Vestlig Østersø")
-    sMethod <- c("Konventionel","eDNA","Begge")
-    sLabelMethod <- "Metode"
-    sLabelKingdom <- "Rige"
-    sLabelSpecies <- "Art"
-    sLabelRegion <- "Region"
-    sLabelCount <- "Antal"
-    sLabelYear <- "År"
-    sAll <- "ALLE"
-    sAppTitle <- "Kort over ikke-hjemmehørende arter"
-    sLogoFile<-"www/NIVA-Danmark-150.png"
-    method_cols <- c("Konventionel"="#999999","eDNA"="#FF0000","Begge"="#0000FF")
-  }else{
-    RegionList<-c("North Sea","Kattegat","Limfjord","Belt Sea","W. Baltic")
-    sMethod <- c("Conventional","eDNA","Both")
-    sLabelMethod <- "Method"
-    sLabelKingdom <- "Kingdom"
-    sLabelSpecies <- "Species"
-    sLabelRegion <- "Region"
-    sLabelCount <- "Count"
-    sLabelYear <- "Year"
-    sAll <- "ALL"
-    sAppTitle <- "Map of non-indigenous species"
-    sLogoFile<-"www/NIVA-Denmark-150.png"
-    method_cols <- c("Conventional"="#999999","eDNA"="#FF0000","Both"="#0000FF")
-  }
-  
-  Region<-factor(c(RegionList,"unspecified"),levels=c(RegionList,"unspecified"))
-  REGIONID <-c(1,2,3,4,5,0)
-  dfRegion <-data.frame(Region,REGIONID,stringsAsFactors=T)
-  
-  YearMin <- 1990 # minimum year for bar chart
-  YearMax <- as.numeric(format(Sys.Date(),"%Y")) # maximum year for bar chart
-  
-  YearList <- c(YearMin:YearMax)  
-  
-  dfSpecies <- read.table("data/NISAR_aphia_id.csv",stringsAsFactors=F,header=T,fileEncoding="UTF-8",sep=";")
-  dfObs <- read.table("data/NISAR_obs.csv",stringsAsFactors=F,header=T,fileEncoding="UTF-8",sep=";")
-  dfObs <- dfObs %>%
-    left_join(select(dfSpecies,AphiaID,ScientificName),by="AphiaID") %>%
-    mutate(REGIONID=ifelse(is.na(REGIONID),0,REGIONID)) %>%
-    left_join(dfRegion,by="REGIONID") %>%
-    mutate(eDNA=ifelse(is.na(eDNA),FALSE,eDNA)) %>%
-    mutate(Method=ifelse(eDNA,sMethod[2],sMethod[1])) %>%
-    filter(Year>=1990) 
-  
-  dfNISlist <- distinct(dfSpecies,AphiaID)
-  
-  dfSpecies <- dfSpecies %>%
-    distinct(AphiaID,Kingdom,Phylum)
-  
-  df <- dfObs %>%
-    group_by(Lat,Lon,ScientificName,AphiaID,Year,Region) %>%
-    summarise(n=n()) %>%
-    ungroup() %>%
-    group_by(Lat,Lon,ScientificName,AphiaID,Region) %>%
-    summarise(From=min(Year,na.rm=T),To=max(Year,na.rm=T),
-              YearList=paste(Year,collapse=","),n=sum(n,na.rm=T)) %>%
-    mutate(Years=ifelse(From==To,as.character(From),paste0(From,"-",To))) %>%
-    ungroup()
-  
-  dfDNA <- dfObs %>%
-    filter(!(is.na(Lat) | is.na(Lon))) %>%
-    mutate(Method=ifelse(eDNA,"eDNA","Conv")) %>%
-    group_by(Lat,Lon,AphiaID,Method) %>%
-    summarise(n=n()) %>%
-    ungroup() %>%
-    pivot_wider(values_from = n,names_from = Method) %>%
-    mutate(Method=ifelse(is.na(eDNA),sMethod[1],ifelse(is.na(Conv),sMethod[2],sMethod[3])))  %>%
-    select(Lat,Lon,AphiaID,Method)
-   
-
-  df <- dfNISlist %>%
-    left_join(df,by="AphiaID") %>%
-    filter(!(is.na(Lat) | is.na(Lon)))
-  
-  df <- df %>% 
-    left_join(dfSpecies,by="AphiaID")
-  
-  df <- df %>% 
-    left_join(dfDNA,by=c("AphiaID","Lat","Lon"))
-  
-  df <- df %>% 
-    mutate(HtmlText=paste0("<a href='http://marinespecies.org/aphia.php?p=taxdetails&id=",AphiaID,
-                           "'>http://marinespecies.org/aphia.php?p=taxdetails&id=",AphiaID,"</a>")) %>%
-    arrange(ScientificName)
-  
-  
-  name_list<-c("ALL",sort(unique(df$ScientificName)))
-  
-  Kingdomlist<- distinct(dfSpecies,Kingdom)
-  Kingdomlist<-Kingdomlist$Kingdom
 
   df_r<-reactive({
-    df1 <- df[0,]
+    df0 <- df %>%
+      filter(is.na(ShapeID))
+    df1 <- df0[0,]
     if(!is.null(input$Species)){
-         df1<-df[df$ScientificName == input$Species,]
+         df1<-df0[df$ScientificName == input$Species,]
     }
     if(!is.null(input$Region)){
       if(input$Region!=sAll){
@@ -123,6 +24,41 @@ shinyServer(function(input, output,session) {
     })
   
   
+  df_shp_r<-reactive({
+    df0 <- df %>%
+      filter(!is.na(ShapeID))
+    df1 <- df0[0,]    
+    if(!is.null(input$Species)){
+      df1<-df_shp[df_shp$ScientificName == input$Species,]
+    }
+    if(!is.null(input$Region)){
+      if(input$Region!=sAll){
+        df1<-df1[df1$Region == input$Region,]
+      }
+    }
+    if(!is.null(input$Method)){
+      if(input$Method!=sAll){
+        df1<-df1[df1$Method == input$Method,]
+      }
+    }
+    
+    df1
+  })
+  
+  shp_r <- reactive({
+
+    df_shp_select <- df_shp_r()
+    idlist <- df_shp_select$ShapeID
+    shp <-subset(shpKU, KUID %in% idlist)
+    
+    df_dat <- shp@data
+    
+    df_dat <- df_dat %>%
+      left_join(df_shp_select,by=c("KUID"="ShapeID"))
+    
+    shp@data <- df_dat
+    shp
+  })
   
   
   MethodList <- reactive({
@@ -131,7 +67,11 @@ shinyServer(function(input, output,session) {
   })
 
   SpeciesList <- reactive({
-    df1<-df
+    #browser()
+    
+    df1<-dfObs %>% 
+      left_join(dfKingdom,by="AphiaID")
+    
     if(!is.null(input$Kingdom)){
       if(!input$Kingdom==sAll){
         df1<-df1[df1$Kingdom == input$Kingdom,]
@@ -143,7 +83,14 @@ shinyServer(function(input, output,session) {
         df1<-df1[df1$Method == sMethodSelected,]
       }
     }
-    df1 <- distinct(df1,ScientificName)
+    
+    #sd
+    df1 <- distinct(df1,AphiaID)
+    
+    df1 <- df1 %>% 
+      left_join(dfSpecies,by="AphiaID") %>%
+      arrange(ScientificName)
+    
     return(df1$ScientificName)
     })
   
@@ -152,8 +99,9 @@ shinyServer(function(input, output,session) {
   output$mymap <- renderLeaflet({
     
     mapdf<-df_r()
+    shp <- shp_r()
     
-    map_method_cols <- c("#999999","#FF0000","#0000FF")
+    
 
     mapdf <- mapdf %>%
       filter(!is.na(Lat))
@@ -161,14 +109,37 @@ shinyServer(function(input, output,session) {
     pal<-colorFactor(map_method_cols, mapdf$Method,levels=sMethod)
 
         map<- leaflet({mapdf}) %>% 
-      addProviderTiles("Esri.WorldStreetMap", options = providerTileOptions(noWrap = TRUE)) %>%
-      setView(zoom=6,lat=56.5,lng=11.5)
+      addProviderTiles("Esri.WorldStreetMap", options = providerTileOptions(noWrap = TRUE))
+      #  %>%
+      #setView(zoom=6,lat=56.5,lng=11.5)
     #browser()
+        
+    if(nrow(shp)>0){
+      map <- map %>% addPolygons(data=shp,color = "white", weight = 0.4, smoothFactor = 0.5,
+                                 opacity = 1.0, fillOpacity = 0.3,
+                                 popup=~YearList,label=~Years, 
+                                 #fillColor = ~colorQuantile("YlOrRd", ALAND)(ALAND),
+                                 fillColor = map_method_cols[1],
+                                 highlightOptions = highlightOptions(color = "red", weight = 2))
+                                                                    # bringToFront = TRUE))
+    }        
+        
     if(nrow(mapdf)>0){
-      map <- map %>% addCircleMarkers(~Lon, ~Lat, radius=5,popup=~YearList,label=~Years,
-                       stroke=TRUE, color=~pal(Method),weight=1,opacity=1,fillOpacity = 1,fillColor=~pal(Method))
+      if(input$grouppoints==T){
+        map <- map %>% addCircleMarkers(~Lon, ~Lat, radius=5,popup=~YearList,label=~Years,
+                                        stroke=TRUE, color=~pal(Method),weight=1,opacity=1,
+                                        fillOpacity = 1,fillColor=~pal(Method),
+                                        clusterOptions=markerClusterOptions() )
+      }else{
+        map <- map %>% addCircleMarkers(~Lon, ~Lat, radius=5,popup=~YearList,label=~Years,
+                                        stroke=TRUE, color=~pal(Method),weight=1,opacity=1,
+                                        fillOpacity = 1,fillColor=~pal(Method))
+        
+      }
         
     }
+        
+    #cat(map)    
 
     map
     
@@ -193,6 +164,10 @@ shinyServer(function(input, output,session) {
     tagList(
       selectInput("Method", sLabelMethod, choices=c(sAll,MethodList()))
     )})
+  
+  output$useGrouping <- renderUI({
+    tagList(checkboxInput("grouppoints",sLabelGroup,value=F))
+  })
   
   
   output$AppTitle <- renderText(sAppTitle)
