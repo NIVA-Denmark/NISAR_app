@@ -60,6 +60,7 @@ shinyServer(function(input, output,session) {
     shp
   })
   
+
   
   MethodList <- reactive({
     df1 <- distinct(df,Method)
@@ -171,6 +172,8 @@ shinyServer(function(input, output,session) {
   
   
   output$AppTitle <- renderText(sAppTitle)
+  output$disclaimer <- renderText(sDisclaimer)
+  output$language <- renderText(sLanguage)
   
   output$barPlot <- renderPlot({
 
@@ -233,6 +236,7 @@ shinyServer(function(input, output,session) {
   })
   
   output$imgLogo <- renderImage({list(src=sLogoFile,alt="NIVA DK logo")},deleteFile=F)
-
+  
+  
   
 })
