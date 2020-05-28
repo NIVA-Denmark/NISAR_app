@@ -30,6 +30,12 @@ if(LANG=="DK"){
   method_cols <- c("Konventionel"=map_method_cols[1],
                    "eDNA"=map_method_cols[2],
                    "Begge"=map_method_cols[3])
+  sDisclaimer <- paste0("Disclaimer: Denne App viser udbredelsen af udvalgte ikke-hjemmehørende arter ",
+                        "i de danske farvande. Den er udviklet i regi af NISAR-projektet (2019-2020) ",
+                        "og finansieret af Miljøstyrelsen. NISAR-projektet er udført af NIVA Danmark (lead),", 
+                        "Statens Naturhistoriske Museum (SNM) og NIRAS A/S. For yderligere informationer: ",
+                        "<a href='mailto:mail@niva-dk.dk?subject=NISAR app hjemmeside'>mail@niva-dk.dk</a>")
+  sLanguage <- "English"
 }else{
   RegionList<-c("North Sea","Kattegat","Limfjord","Belt Sea","W. Baltic")
   sMethod <- c("Conventional","eDNA","Both")
@@ -46,8 +52,14 @@ if(LANG=="DK"){
   method_cols <- c("Conventional"=map_method_cols[1],
                    "eDNA"=map_method_cols[2],
                    "Both"=map_method_cols[3])
+  sDisclaimer <- paste0("Disclaimer: This app displays the extent of selected non-indigenous species ",
+                        "i Danish waters. It has been developed as part of the NISAR project (2019-2020) ",
+                        "funded by the Danish Environmental Protection Agency. The NISAR project was carried ",
+                        "out by NIVA Denmark (lead), The Natural History Museum of Denmark and NIRAS A/S. ", 
+                        "For further information: ",
+                        "<a href='mailto:mail@niva-dk.dk?subject=NISAR App website'>mail@niva-dk.dk</a>")
+  sLanguage <- "Dansk"
 }
-
 
 
 Region<-factor(c(RegionList,"unspecified"),levels=c(RegionList,"unspecified"))
