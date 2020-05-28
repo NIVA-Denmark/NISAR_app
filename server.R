@@ -114,7 +114,7 @@ shinyServer(function(input, output,session) {
       #  %>%
       #setView(zoom=6,lat=56.5,lng=11.5)
     #browser()
-        
+    bEmptyMap <- T   
     if(nrow(shp)>0){
       map <- map %>% addPolygons(data=shp,color = "white", weight = 0.4, smoothFactor = 0.5,
                                  opacity = 1.0, fillOpacity = 0.3,
@@ -123,6 +123,7 @@ shinyServer(function(input, output,session) {
                                  fillColor = map_method_cols[1],
                                  highlightOptions = highlightOptions(color = "red", weight = 2))
                                                                     # bringToFront = TRUE))
+      bEmptyMap <- F
     }        
         
     if(nrow(mapdf)>0){
@@ -137,10 +138,12 @@ shinyServer(function(input, output,session) {
                                         fillOpacity = 1,fillColor=~pal(Method))
         
       }
-        
+      bEmptyMap <- F
     }
         
-    #cat(map)    
+    if(bEmptyMap){
+      map<- map %>% setView(zoom=6,lat=56.5,lng=11.5)
+    }
 
     map
     
