@@ -20,9 +20,9 @@ shinyUI(
                      uiOutput("SelectRegion"),
                      uiOutput("SelectMethod"),
                      uiOutput("useGrouping"),
-                     tableOutput("table"),
-                     tags$br() # spacer 
-                   )
+                     tableOutput("table")
+                   ),
+                   tags$br() # spacer 
             ),
             column(4,
                    leafletOutput("mymap",height = 500),
