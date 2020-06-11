@@ -45,11 +45,11 @@ shinyUI(
                                               p("Når musepilen placeres over et punkt, vises en 'popup'",
                                                 "der indikerer den tidligste og seneste årstal hvor arten",
                                                 "er registreret det pågældende sted. Hvis der kun er",
-                                                "registreret fund i et enkelt år, så vises kun dette år i 'popup'en.",
-                                                img(src="key_mouseover.png")),
+                                                "registreret fund i et enkelt år, så vises kun dette år i 'popup'en."),
+                                                p(img(src="key_mouseover.png")),
                                               p("Hvis man klikker på punktet, kommer der en liste frem med alle år", 
-                                                "hvor arten er registreret.",
-                                                img(src="key_popup.png")))),              
+                                                "hvor arten er registreret."),
+                                              p(img(src="key_popup.png")))),              
                    tags$br() # spacer 
                    
             ),
