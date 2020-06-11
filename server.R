@@ -68,7 +68,6 @@ shinyServer(function(input, output,session) {
   })
 
   SpeciesList <- reactive({
-    #browser()
     
     df1<-dfObs %>% 
       left_join(dfKingdom,by="AphiaID")
@@ -179,7 +178,7 @@ shinyServer(function(input, output,session) {
   output$language <- renderText(sLanguage)
   
   output$barPlot <- renderPlot({
-
+    
     req(input$Species,input$Method)
     
     dfplot<-dfObs %>%
@@ -215,6 +214,9 @@ shinyServer(function(input, output,session) {
     sMethodReplace <- sMethod[1]
     if(nrow(distinct(dfplot,Method))==1){
       sMethodReplace <- dfplot[1,"Method"]
+    }
+    if(nrow(distinct(dfplot,Method))==0){
+      sMethodReplace <- input$Method
     }
     
     dfplot <- data.frame(Year=YearList) %>%
