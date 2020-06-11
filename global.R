@@ -115,7 +115,8 @@ df_shp <- dfObs %>%
   summarise(From=min(Year,na.rm=T),To=max(Year,na.rm=T),
             YearList=paste(Year,collapse=","),n=sum(n,na.rm=T)) %>%
   mutate(Years=ifelse(From==To,as.character(From),paste0(From,"-",To))) %>%
-  ungroup()
+  ungroup() %>%
+  mutate(Method=sMethod[1])
 
 
 dfDNA <- dfObs %>%
