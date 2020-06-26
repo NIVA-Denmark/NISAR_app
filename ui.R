@@ -32,12 +32,13 @@ shinyUI(
                               bsCollapsePanel("Figurforklaring",
                                               p("Observationer er vist som punkter på kortet.",
                                                 "Farven indikerer om arten er registret",
-                                                " med konventionelle metoder",
+                                                " med konventionelle metoder (blå)",
                                                 img(src="key20_1.png"),
-                                                "eller med eDNA",
+                                                "eller med eDNA (rød)",
                                                 img(src="key20_2.png"),
-                                                "."),              
-                                              
+                                                ". Grønt indikerer at arten blev fundet med begge type metoder",
+                                                img(src="key20_12.png"),"."
+                                              ),
                                               p("For mange fiskearter er data 'anonymiseret' sådan at det præcise punkt for",
                                                 "registreringen ikke kas ses. Her vises den 10 x 10 km",
                                                 "gridcelle hvor arten er fundet.",
