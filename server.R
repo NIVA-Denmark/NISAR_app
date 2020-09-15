@@ -97,12 +97,10 @@ shinyServer(function(input, output,session) {
   
   
   output$mymap <- renderLeaflet({
-    
+
     mapdf<-df_r()
     shp <- shp_r()
     
-    
-
     mapdf <- mapdf %>%
       filter(!is.na(Lat))
     
