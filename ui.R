@@ -40,7 +40,7 @@ shinyUI(
                                                 img(src="key20_12.png"),"."
                                               ),
                                               p("For mange fiskearter er data 'anonymiseret' sådan at det præcise punkt for",
-                                                "registreringen ikke kas ses. Her vises den 10 x 10 km",
+                                                "registreringen ikke kan ses. Her vises den 10 x 10 km",
                                                 "gridcelle hvor arten er fundet.",
                                                 img(src="key20_3.png")),
                                               p("Når musepilen placeres over et punkt, vises en 'popup'",
